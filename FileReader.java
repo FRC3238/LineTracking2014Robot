@@ -10,14 +10,18 @@ import java.util.Vector;
 import javax.microedition.io.Connector;
 
 /**
-* Reads the contents of a text file into a vector
-*/
+ * Reads the contents of a text file into a vector
+ */
 public class FileReader
 {
-    /**
-    * Reads the contents of the file into a vector with each line placed into
-    * its own element
-    */
+	/**
+	 * Reads the contents of the file into a vector with each line placed into
+	 * its own element
+	 *
+	 * @param filename The name of the file to read data from
+	 * @return A vector with each element corresponding to a line in the text
+	 * file
+	 */
 	public static Vector getFileContents(String filename)
 	{
 		String path = "file:///" + filename;

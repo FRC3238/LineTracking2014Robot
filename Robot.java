@@ -22,10 +22,11 @@ public class Robot extends IterativeRobot
 
 	double m_autoPConstant;
 	double m_autoIConstant;
-    double m_teleopPConstant;
-    double m_teleopIConstant;
-    double m_xPower;
-    double m_yPower;
+	double m_teleopPConstant;
+	double m_teleopIConstant;
+	double m_spinThreshold;
+	double m_xPower;
+	double m_yPower;
 
 	Robot()
 	{
@@ -35,21 +36,23 @@ public class Robot extends IterativeRobot
 		final int RIGHTFRONTTALONPORT = 7;
 		final int RIGHTREARTALONPORT = 3;
 		// Digital Inputs
-        final int FRONTPHOTOSWITCHPORT = 13;
-        final int REARPHOTOSWITCHPORT = 14;
+		final int FRONTPHOTOSWITCHPORT = 13;
+		final int REARPHOTOSWITCHPORT = 14;
 		// Analog Inputs
 		final int ULTRASONICSENSORPORT = 1;
 		final int GYROSENSORPORT = 6;
-        final int INFAREDSENSORPORT = 5;
+		final int INFAREDSENSORPORT = 5;
 		// Driver Station Inputs
 		final int JOYSTICKPORT = 1;
 
+		chassis = new Chassis(LEFTFRONTTALONPORT, LEFTREARTALONPORT, 
+				RIGHTFRONTTALONPORT, RIGHTREARTALONPORT);
 		joystick = new Joystick(JOYSTICKPORT);
 		ultrasonicSensor = new AnalogChannel(ULTRASONICSENSORPORT);
 		gyroSensor = new AnalogChannel(GYROSENSORPORT);
 		frontPhotoswitch = new DigitalInput(FRONTPHOTOSWITCHPORT);
 		rearPhotoswitch = new DigitalInput(REARPHOTOSWITCHPORT);
-        infaredSensor = new AnalogChannel(INFAREDSENSORPORT);
+		infaredSensor = new AnalogChannel(INFAREDSENSORPORT);
 		driverStationLCD = DriverStationLCD.getInstance();
 		driverStation = DriverStation.getInstance();
 	}
@@ -66,16 +69,18 @@ public class Robot extends IterativeRobot
 	{
 		Vector settingsFile = FileReader.getFileContents("settings.txt");
 		m_autoPConstant
-		    = Double.parseDouble((String) settingsFile.elementAt(0));
+				= Double.parseDouble((String) settingsFile.elementAt(0));
 		m_autoIConstant
-		    = Double.parseDouble((String) settingsFile.elementAt(1));
+				= Double.parseDouble((String) settingsFile.elementAt(1));
+		m_spinThreshold
+				= Double.parseDouble((String) settingsFile.elementAt(4));
 		m_xPower
-	        = Double.parseDouble((String) settingsFile.elementAt(4));
+				= Double.parseDouble((String) settingsFile.elementAt(5));
 		m_yPower
-	        = Double.parseDouble((String) settingsFile.elementAt(5));
-        GyroDrive.reinit();
-        LineTrack.initializeConstants(m_xPower, m_yPower, m_autoPConstant, 
-            m_autoIConstant);
+				= Double.parseDouble((String) settingsFile.elementAt(6));
+		GyroDrive.reinit();
+		LineTrack.initializeConstants(m_xPower, m_yPower, m_autoPConstant,
+				m_autoIConstant);
 	}
 
 	public void teleopInit()
@@ -85,6 +90,8 @@ public class Robot extends IterativeRobot
 				= Double.parseDouble((String) settingsFile.elementAt(2));
 		m_teleopIConstant
 				= Double.parseDouble((String) settingsFile.elementAt(3));
+		m_spinThreshold
+				= Double.parseDouble((String) settingsFile.elementAt(4));
 		GyroDrive.reinit();
 	}
 
@@ -94,17 +101,17 @@ public class Robot extends IterativeRobot
 
 	public void disabledPeriodic()
 	{
-        System.out.println(0.261091633 * 
-				MathUtils.pow(infaredSensor.getVoltage(), -1.190686871));
+		System.out.println(0.261091633
+				* MathUtils.pow(infaredSensor.getVoltage(), -1.190686871));
 	}
 
 	public void autonomousPeriodic()
 	{
-        int gyroValue = gyroSensor.getValue() - 476;
-		LineTrack.lineTrack(frontPhotoswitch, rearPhotoswitch, chassis, 
-				gyroValue);
-        chassis.idle();
-    }
+		int gyroValue = gyroSensor.getValue() - 476;
+		LineTrack.lineTrack(frontPhotoswitch, rearPhotoswitch, chassis,
+				m_spinThreshold, gyroValue);
+		chassis.idle();
+	}
 
 	public void teleopPeriodic()
 	{
@@ -118,29 +125,22 @@ public class Robot extends IterativeRobot
 		double twist = joystick.getRawAxis(3);
 		if(driverStation.getDigitalIn(2))
 		{
-			if(twist >= -0.15 && twist <= 0.15)
-			{
-				double adjustedRotationValue
-						= GyroDrive.getAdjustedRotationValue(x, -y, 0,
-								m_teleopPConstant, m_teleopIConstant,
-								gyroValue);
-				chassis.setJoystickData(x, -y, adjustedRotationValue);
-			}
-			else
-			{
-				chassis.setJoystickData(x, -y, twist);
-			}
+			double adjustedRotationValue
+					= GyroDrive.getAdjustedRotationValue(x, y, twist,
+							m_teleopPConstant, m_teleopIConstant,
+							m_spinThreshold, gyroValue);
+			chassis.setJoystickData(x, y, adjustedRotationValue);
 		}
 		else
 		{
-			chassis.setJoystickData(x, -y, twist);
+			chassis.setJoystickData(x, y, twist);
 		}
 		chassis.idle();
 	}
 
 	public void testPeriodic()
 	{
-        System.out.println("Front Photoswitch: " + frontPhotoswitch.get());
+		System.out.println("Front Photoswitch: " + frontPhotoswitch.get());
 		System.out.println("Rear Photoswitch: " + rearPhotoswitch.get());
 		chassis.setJoystickData(0, 0, 0);
 		chassis.idle();
